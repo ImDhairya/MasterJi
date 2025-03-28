@@ -1,89 +1,117 @@
-// let myData = [];
-// await fetchData();
-
-// // 'https://api.freeapi.app/api/v1/public/books?page=3&limit=10&inc=kind%252Cid%252Cetag%252CvolumeInfo&query=tech'
-
-// async function fetchData() {
-//   try {
-//     const response = await fetch("https://api.freeapi.app/api/v1/public/books");
-//     const result = await response.json();
-
-//     if (!result.data || !result.data.data) {
-//       throw new Error("Unexpected data structure");
-//     }
-
-//     // console.log(result.data.data);
-//     // console.log(result.data.data[0]);
-
-//     myData = [...result.data];
-//   } catch (error) {
-//     console.error("The error is:", error);
-//   }
-// }
-
-// console.log(myData);
-
-// function getSingleContainer() {
-//   const container = document.createElement("div");
-// }
-
 let collectedData = [];
+let count = 1;
+const wizard = document.querySelector(".wizard");
+const readMore = document.getElementById("read-more");
+const container = document.getElementById("container");
+
+async function getMoreData() {
+  count++;
+  try {
+    const url = await fetch(
+      `https://api.freeapi.app/api/v1/public/books?page=${count}&limit=10&inc=kind%252Cid%252Cetag%252CvolumeInfo&query=tech`
+    );
+
+    const resultURLData = await url.json();
+    const nextData = resultURLData.data.data;
+
+    console.log("New Data Fetched:", nextData);
+
+    collectedData = [...collectedData, ...nextData];
+    loadData(nextData);
+  } catch (error) {
+    console.error("Error fetching more data:", error);
+  }
+}
+async function cardClick(id) {
+  console.log(wizard);
+  console.log(typeof collectedData);
+  const myData = collectedData.find((ele) => ele.id === id);
+  console.log(myData, typeof myData);
+  wizard.innerHTML = `
+   <div onclick="cardClick(${myData.id})" class="wizard-card">
+    <div class="wizard-card-header">
+    <h2 class="wizard-card-title">${myData.volumeInfo.title}</h2>
+    <p class="wizard-card-id">ID: ${myData.id}</p>
+    </div>
+    <div class="wizard-card-body">
+    <p class="wizard-card-author">By: ${
+      myData.volumeInfo.authors || "Unknown Author"
+    }</p>
+    <div class="wizard-card-details">
+    <p><strong>Published:</strong> ${
+      myData.volumeInfo.publishedDate || "Unknown"
+    }</p>
+    <p><strong>Publisher:</strong> ${
+      myData.volumeInfo.publisher || "Unknown"
+    }</p>
+    <p><strong>Pages:</strong> ${myData.volumeInfo.pageCount || "Unknown"}</p>
+    </div>
+    <p class="wizard-card-description">
+    ${myData.volumeInfo.description || "No description available."}
+    </p>
+    </div>
+    </div>
+  `;
+}
+function loadData(data) {
+  data.forEach((val) => {
+    const cardHTML = `
+    <div onclick="cardClick(${val.id})" class="card">
+    <div class="card-header">
+    <h2 class="card-title">${
+      val.volumeInfo.title.length > 35
+        ? val.volumeInfo.title.slice(0, 35) + "..."
+        : val.volumeInfo.title
+    }</h2>
+    <p class="card-id">ID: ${val.id}</p>
+    </div>
+    <div class="card-body">
+    <p class="card-author">By: ${
+      val.volumeInfo.authors?.slice(0, 3).join(", ") || "Unknown Author"
+    }</p>
+    <div class="card-details">
+    <p><strong>Published:</strong> ${
+      val.volumeInfo.publishedDate || "Unknown"
+    }</p>
+    <p><strong>Publisher:</strong> ${val.volumeInfo.publisher || "Unknown"}</p>
+    <p><strong>Pages:</strong> ${val.volumeInfo.pageCount || "Unknown"}</p>
+    </div>
+    <p class="card-description">
+    ${
+      val.volumeInfo.description?.slice(0, 200) + "..." ||
+      "No description available."
+    }
+    </p>
+    </div>
+    </div>
+    `;
+
+    container.insertAdjacentHTML("beforeend", cardHTML);
+  });
+}
+
 async function fetchData() {
   try {
-    const response = await fetch("https://api.freeapi.app/api/v1/public/books");
+    const response = await fetch(
+      "https://api.freeapi.app/api/v1/public/books?page=1&limit=10&inc=kind%252Cid%252Cetag%252CvolumeInfo&query=tech"
+    );
+
     const resultData = await response.json();
+    collectedData = resultData.data.data;
 
-    // console.log(resultData);
-
-    collectedData = JSON.parse(JSON.stringify(resultData.data.data));
-    // console.log(collectedData);
+    loadData(collectedData);
   } catch (error) {
-    console.log(error, "Error fetching data");
+    console.error("Error fetching initial data:", error);
   }
 }
 
 async function main() {
   await fetchData();
-  // console.log(collectedData);
 
-  const box = document.createElement("div");
-  console.log(collectedData);
-
-  box.innerHTML = ` 
-  <div class="container">
-      <div class="box">
-        <div class="top">
-          <p class="id">${collectedData[0].id}</p>
-          <p class="title">${collectedData[0].volumeInfo.title}</p>
-        </div>
-        <div class="author">
-          <p class="people">by: ${collectedData[0].volumeInfo.authors}</p>
-          <div class="details">
-            <p>publishedDate: ${collectedData[0].volumeInfo.publishedDate}</p>
-            <p>publisher: ${collectedData[0].volumeInfo.publisher}</p>
-            <p>Pages: ${collectedData[0].volumeInfo.pageCount}</p>divdivdiv
-          </div>
-          <hr />
-          <p class="description">
-            can expect. Bottom line: This book will make you a better
-            developerBottom line: This book will make you a better
-            developerBottom line: This book will make you a better
-            developerBottom line: This book will make you a better developer.
-          </p>
-        </div>
-
-        <div class="bottom"></div>
-      </div>
-    </div`;
-
-  document.getElementById("container").appendChild(box);
+  readMore.addEventListener("click", async () => {
+    console.log("CLICKED");
+    await getMoreData();
+  });
 }
 
 main();
-const myDate = "2006 - 04 - 04;";
-const cleanDate = myDate.replace(";", "").trim();
-const correctDt = cleanDate.replaceAll("-", "/").trim();
-// console.log(a);
-
-const date = new Date(correctDt);
-console.log(date);
